@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temple Contribution & Records Manager</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header Section -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">🛕</div>
+          <div class="brand-text">
+            <h1>Temple Contribution Manager</h1>
+            <p class="subtitle">Permanent record of places, contributors, mobile numbers, addresses, and amounts</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="btnExportCsv" class="btn btn-secondary" title="Download Excel-compatible CSV spreadsheet">
+            <span class="icon">📥</span> Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Dashboard -->
+      <section class="stats-grid" aria-label="Summary statistics">
+        <div class="stat-card stat-total">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <span class="stat-label">Total Amount Collected</span>
+            <span class="stat-value" id="statTotalAmount">₹0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-info">
+            <span class="stat-label">Total People</span>
+            <span class="stat-value" id="statTotalPersons">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📍</div>
+          <div class="stat-info">
+            <span class="stat-label">Total Places</span>
+            <span class="stat-value" id="statTotalPlaces">0</span>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      <!-- Action Toolbar -->
+      <section class="toolbar">
+        <div class="primary-actions">
+          <button id="btnOpenAddRecord" class="btn btn-primary">
+            <span class="icon">➕</span> Add Person & Amount
+          </button>
+          <button id="btnOpenAddPlace" class="btn btn-outline">
+            <span class="icon">📍</span> Add Place
+          </button>
+          <button id="btnOpenManagePlaces" class="btn btn-outline">
+            <span class="icon">⚙️</span> Manage Places
+          </button>
+        </div>
+
+        <div class="filter-actions">
+          <div class="search-box">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="searchInput" placeholder="Search by name, place, phone, address..." aria-label="Search records">
+          </div>
+          <div class="select-wrapper">
+            <select id="placeFilter" aria-label="Filter records by place">
+              <option value="all">All Places</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Place Quick-Chips Section -->
+      <section class="place-chips-bar" id="placeChipsBar" aria-label="Quick place filters">
+        <span class="chips-label">Places:</span>
+        <div class="chips-container" id="placeChipsContainer">
+          <!-- Dynamically populated chips -->
+        </div>
+      </section>
+
+      <!-- Data Table Section -->
+      <section class="table-section">
+        <div class="table-header-info">
+          <h2 id="tableCaption">Records List <span id="recordCountBadge" class="count-badge">0</span></h2>
+          <div id="filterIndicator" class="filter-indicator" style="display: none;">
+            Filtered by: <strong id="currentFilterText"></strong>
+            <button id="btnClearFilter" class="btn-link" title="Clear place filter">Show All</button>
+          </div>
+        </div>
+
+        <!-- Accessible Responsive Table Wrapper -->
+        <div tabindex="0" role="region" aria-labelledby="tableCaption" class="table-wrapper">
+          <table id="recordsTable">
+            <thead>
+              <tr>
+                <th scope="col" class="col-sno">#</th>
+                <th scope="col" class="col-place">Place</th>
+                <th scope="col" class="col-person">Contributor Details</th>
+                <th scope="col" class="col-amount">Amount</th>
+                <th scope="col" class="col-date">Date & Time</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTbody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+
+          <!-- Empty State -->
+          <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-icon">📝</div>
+            <h3 id="emptyTitle">No records found</h3>
+            <p id="emptyDesc">Start by adding a place and recording people's contributions.</p>
+            <button id="btnEmptyAdd" class="btn btn-primary">➕ Add First Record</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Data is stored permanently in the local database. Works offline and refreshes safely.</p>
+    </footer>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- MODAL: ADD / EDIT RECORD (PERSON, MOBILE, ADDRESS, AMOUNT, TIME) -->
+  <!-- ==================================================== -->
+  <dialog id="recordModal" closedby="any" aria-labelledby="recordModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="recordModalTitle">Add Person & Amount</h2>
+        <button type="button" class="btn-close" data-close-modal="recordModal" aria-label="Close dialog">&times;</button>
+      </div>
+      <form id="recordForm" method="dialog">
+        <input type="hidden" id="recordEditId" value="">
+        
+        <div class="form-group">
+          <div class="form-label-row">
+            <label for="recordPlaceSelect">Place Name <span class="required">*</span></label>
+            <button type="button" id="btnQuickAddPlace" class="btn-link">+ New Place</button>
+          </div>
+          <select id="recordPlaceSelect" required>
+            <option value="" disabled selected>-- Select a Place --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="recordPersonName">Person's Name <span class="required">*</span></label>
+          <input type="text" id="recordPersonName" required placeholder="e.g. Ramesh Kumar, Murugan" autocomplete="name">
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="recordMobile">Mobile Number</label>
+            <input type="tel" id="recordMobile" placeholder="e.g. 9876543210" autocomplete="tel" inputmode="tel">
+          </div>
+          <div class="form-group">
+            <label for="recordTime">Date & Time</label>
+            <input type="datetime-local" id="recordTime">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="recordAddress">Address / Door No / Street</label>
+          <input type="text" id="recordAddress" placeholder="e.g. 12/B, Sannathi Street" autocomplete="street-address">
+        </div>
+
+        <div class="form-group">
+          <label for="recordAmount">Amount Given (₹) <span class="required">*</span></label>
+          <div class="input-currency-wrapper">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="recordAmount" required min="0" step="any" placeholder="e.g. 500, 1000, 5000">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="recordModal">Cancel</button>
+          <button type="submit" id="btnSubmitRecord" class="btn btn-primary">Save Record</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ==================================================== -->
+  <!-- MODAL: ADD / EDIT PLACE                              -->
+  <!-- ==================================================== -->
+  <dialog id="placeModal" closedby="any" aria-labelledby="placeModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="placeModalTitle">Add New Place</h2>
+        <button type="button" class="btn-close" data-close-modal="placeModal" aria-label="Close dialog">&times;</button>
+      </div>
+      <form id="placeForm" method="dialog">
+        <input type="hidden" id="placeEditId" value="">
+        
+        <div class="form-group">
+          <label for="placeNameInput">Place / Village / Street Name <span class="required">*</span></label>
+          <input type="text" id="placeNameInput" required placeholder="e.g. North Street, Madurai, Gandhi Nagar" autocomplete="off">
+          <small class="form-hint">Enter the area or village name under which people will be grouped.</small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="placeModal">Cancel</button>
+          <button type="submit" id="btnSubmitPlace" class="btn btn-primary">Save Place</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ==================================================== -->
+  <!-- MODAL: MANAGE PLACES                                 -->
+  <!-- ==================================================== -->
+  <dialog id="managePlacesModal" closedby="any" aria-labelledby="managePlacesTitle">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <h2 id="managePlacesTitle">Manage Places</h2>
+        <button type="button" class="btn-close" data-close-modal="managePlacesModal" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="manage-places-toolbar">
+          <p class="manage-hint">View all registered places, their total contributors, and edit or delete them.</p>
+          <button id="btnManageAddNewPlace" class="btn btn-sm btn-outline">+ Add Place</button>
+        </div>
+        <div class="places-list" id="managePlacesList">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="managePlacesModal">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ==================================================== -->
+  <!-- MODAL: CONFIRM DELETE                                -->
+  <!-- ==================================================== -->
+  <dialog id="confirmModal" closedby="any" aria-labelledby="confirmModalTitle">
+    <div class="modal-card">
+      <div class="modal-header modal-header-danger">
+        <h2 id="confirmModalTitle">Confirm Delete</h2>
+        <button type="button" class="btn-close" data-close-modal="confirmModal" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage">Are you sure you want to delete this record?</p>
+        <p id="confirmModalSubtext" class="text-danger-subtext"></p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="confirmModal">Cancel</button>
+        <button type="button" id="btnConfirmDelete" class="btn btn-danger">Yes, Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

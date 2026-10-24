@@ -1,0 +1,17 @@
+{
+  "name": "temple-app",
+  "version": "1.0.0",
+  "description": "Temple Contribution & Place-wise Records Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "temple",
+    "contributions",
+    "records",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "ISC"
+}
